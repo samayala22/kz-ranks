@@ -2,6 +2,9 @@ import json
 import pathlib
 import numpy as np
 import datetime 
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
+from tqdm import tqdm
 
 def sanitize_name_md(name): return name.replace('|', r'\|')
 
@@ -21,8 +24,8 @@ def read_map_file(map_name, pro = False):
 
 def build_scorer(wr_time, median_time, completions):
     wr = wr_time
-    v = 0.3 # controls median score as completions -> inf
-    q = 0.2 # controls floor value (affects how flat the curve is)
+    v = 0.2 # controls median score as completions -> inf
+    q = 1/3 # controls floor value (affects how flat the curve is)
     u = 1 / np.power(completions, q) # floor value
     t = v * (1 - u) + u # score at median time
     k = np.log((1 - u + 1e-6) / (t - u)) / median_time # coefficient to respect median condition
@@ -71,9 +74,10 @@ def main():
     path = "maptops"
     maps = [f.stem for f in pathlib.Path(path).iterdir()]
     # maps = ["kz_kiwiterror"]
-    for map_name in maps:
-        print(f"Parsing {map_name}")
-        parse(map_name)
+
+    max_workers = max(1, multiprocessing.cpu_count() - 1)
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        list(tqdm(executor.map(parse, maps), total=len(maps)))
 
 if __name__ == "__main__":
     main()
