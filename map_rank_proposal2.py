@@ -22,19 +22,25 @@ def read_map_file(map_name, pro = False):
         print(f"An error occurred: {e}")
     return None
 
-def build_scorer(wr_time, median_time, completions):
+def build_scorer(wr_time, sample_time, completions):
     wr = wr_time
     v = 0.2 # controls median score as completions -> inf
     q = 1/3 # controls floor value (affects how flat the curve is)
     u = 1 / np.power(completions, q) # floor value
-    t = v * (1 - u) + u # score at median time
-    k = np.log((1 - u + 1e-6) / (t - u)) / median_time # coefficient to respect median condition
+    t = v * (1 - u) + u # score at sample time
+    k = np.log((1 - u + 1e-6) / (t - u)) / sample_time # coefficient to respect sample condition
 
     def scorer(time):
         diff = time - wr
         return int(10000 * (u + (1 - u)/np.exp(k * diff)))
     
     return scorer
+
+def sampler(completions):
+    m = 0.4
+    q = 1/3
+    u = 1 / np.power(completions, q)
+    return int(completions * (u + (1 - u)*m)) # converges to 100*m percentile value as completions -> inf
 
 def create_markdown_table(map_name, headers, table):
     with open(f"tables2/{map_name}.md", "w", encoding="utf-8") as f:
@@ -59,7 +65,8 @@ def parse(map_name):
         return
     json_data = sorted(raw_json_data, key=lambda x: x["time"])
     wr_time = json_data[0]["time"]
-    median_time = json_data[len(json_data)//2]['time']
+    # median_time = json_data[len(json_data)//2]['time']
+    median_time = json_data[sampler(len(json_data))]['time']
     scorer = build_scorer(wr_time, median_time, len(json_data))
     table_headers = ["#", "Name", "Time", "Points"]
     table = [[], [], [], []] # name, time, points
