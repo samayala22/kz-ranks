@@ -22,6 +22,7 @@ def read_map_file(dir_name, map_name, pro = False):
         print(f"An error occurred: {e}")
     return None
 
+# https://www.desmos.com/calculator/cugh0ahivb
 def build_scorer(wr_time, sample_time, completions):
     wr = wr_time
     v = 0.2 # controls median score as completions -> inf
@@ -64,6 +65,8 @@ def create_plots(map_name, p0, p1):
     try:
         # Create figure with two subplots
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+        fig.suptitle(map_name, fontsize=16)
         
         # Time distribution
         ax1.hist(p0[0], bins=200, edgecolor='black')
